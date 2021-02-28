@@ -17,6 +17,7 @@ export interface IGameRecord {
 export interface IView {
   // Lets outline some services it might have later
   firestoreService: { db: firebase.firestore.Firestore };
+  playAudio(src: string): void;
 }
 
 export interface IGame {

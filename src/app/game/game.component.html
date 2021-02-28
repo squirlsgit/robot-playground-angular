@@ -1,1 +1,135 @@
-<p>game works!</p>
+<div class="container" style="padding:2.5em;">
+  <ng-container *ngIf="player; else SubmitName">
+    
+    <div fxLayout="row" fxLayoutAlign="space-between start">
+      <div fxFlex="45" style="height: 600px; display:block; padding:3em;" >
+        <ng-container *ngIf="!game_over_message; else GameOver">
+          <mat-card class="detail">
+            <mat-card-header >
+              Game 5x5
+              Please use left and right arrow keys to rotate, and up key to move forward.
+              Try and collect all the bowsers, but don't fall off the edge!
+
+            </mat-card-header>
+          </mat-card>
+
+          <div fxLayout="row" fxLayoutAlign="center center" style="height:600px" >
+            <mat-grid-list cols="5" rowHeight="fit" >
+              <ng-container *ngFor="let row of this.game.board.state; let j=index">
+                <ng-container *ngFor="let tile of this.game.board.state[j]; let i=index">
+                  <mat-grid-tile>
+                    <ng-container *ngTemplateOutlet="!tile.resident? Tile: Entity; context: {$implicit: tile, entity: tile.resident}"></ng-container>
+
+
+                  </mat-grid-tile>
+
+                </ng-container>
+              </ng-container>
+            </mat-grid-list>
+          </div>
+          <div fxLayout="row" fxLayoutAlign="space-between start">
+            <mat-label>
+              Score {{game.gameRecord.score}}
+            </mat-label>
+            <mat-label>
+              Time Left {{game.timer}}
+            </mat-label>
+          </div>
+        </ng-container>
+        
+        <ng-template #GameOver>
+          <mat-card class="detail">
+            <mat-card-header>
+              Game 5x5
+              {{game_over_message}}
+            </mat-card-header>
+          </mat-card>
+        </ng-template>
+
+        
+      </div>
+      <div fxFlex="45" style="padding-right:10em;">
+        <ng-container *ngIf="leaderboard$ | async as datasource">
+          <mat-accordion>
+
+            <mat-expansion-panel (opened)="panelOpenState = true"
+                                 (closed)="panelOpenState = false">
+              <mat-expansion-panel-header>
+                <mat-panel-title>
+                  Leader Board
+                </mat-panel-title>
+              </mat-expansion-panel-header>
+
+
+              <table style="width:100%; max-height: 600px; overflow:auto;" mat-table [dataSource]="datasource">
+
+
+                <ng-container matColumnDef="rank">
+                  <th mat-header-cell *matHeaderCellDef> Rank </th>
+                  <td mat-cell *matCellDef="let element" [class.highlight]="element.playerName == player.id"> {{element.rank}} </td>
+                </ng-container>
+                <ng-container matColumnDef="playerName">
+                  <th mat-header-cell *matHeaderCellDef> Name </th>
+                  <td mat-cell *matCellDef="let element" [class.highlight]="element.playerName == player.id"> {{element.playerName}} </td>
+                </ng-container>
+                <ng-container matColumnDef="score">
+                  <th mat-header-cell *matHeaderCellDef> Score </th>
+                  <td mat-cell *matCellDef="let element" [class.highlight]="element.playerName == player.id"> {{element.score}} </td>
+                </ng-container>
+
+                <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+                <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+
+              </table>
+
+
+            </mat-expansion-panel>
+
+          </mat-accordion>
+
+        </ng-container>
+
+      </div>
+    </div>
+
+
+
+  </ng-container>
+
+  <ng-template #Tile let-tile>
+    <!-- We can do some interesting things here. -->
+  </ng-template>
+
+  <ng-template #Entity let-entity="entity">
+    <div class="container" style="background-size: 100% 100%"
+         [style.background-image]="'url(' + entity.profile.image + ')'"
+         [style.transform]="'rotate('+ (entity.movement.rotation + 90) + 'deg)'">
+
+
+    </div>
+  </ng-template>
+
+
+  <ng-template #SubmitName>
+    <ng-container *ngIf="!player">
+      <div style="height: 100%; width: 100%" fxLayout="col" fxLayoutAlign="center center">
+        <mat-card>
+          <mat-card-title>
+            Signin
+          </mat-card-title>
+          <mat-card-content>
+              <mat-label>
+                Player Name
+              </mat-label>
+              <input matInput placeholder="Leaderboard Username" [(ngModel)]="this.player_name" (blur)="setPlayer(this.player_name)" />
+            
+          </mat-card-content>
+        </mat-card>
+      </div>
+      
+    </ng-container>
+    
+  </ng-template>
+
+</div>
+

@@ -5,7 +5,7 @@ import firebase from 'firebase';
   providedIn: 'root'
 })
 export class FirestoreService {
-  public db;
+  public db: firebase.firestore.Firestore;
   constructor() {
 
     firebase.initializeApp({

@@ -15,7 +15,7 @@ export class EntityFactoryService implements IEntityFactory {
         state$: new Subject<string>(),
         disabled: false,
         profile: {
-          image: 'assets/images/robot.png',
+          image: '/assets/images/robot.jpg',
           label: 'Mr. Can',
           id: 'r'
         },
@@ -44,7 +44,7 @@ export class EntityFactoryService implements IEntityFactory {
         mode: Mode.Solid,
         profile: {
           label: 'Star',
-          image: 'assets/images/destination.png',
+          image: '/assets/images/destination.png',
           id: 'd'
         },
         entityFactory: this,

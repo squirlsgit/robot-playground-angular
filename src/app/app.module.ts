@@ -12,7 +12,10 @@ import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTableModule } from '@angular/material/table';
 import { FlexLayoutModule } from '@angular/flex-layout';
 import { MatTabsModule } from '@angular/material/tabs';
-import { MatBadgeModule } from '@angular/material/badge'; 
+import { MatBadgeModule } from '@angular/material/badge';
+import { MatInputModule } from '@angular/material/input';
+import { MatExpansionModule } from '@angular/material/expansion'; 
+import { FormsModule } from '@angular/forms';
 @NgModule({
   declarations: [
     AppComponent,
@@ -30,7 +33,10 @@ import { MatBadgeModule } from '@angular/material/badge';
     MatTableModule,
     FlexLayoutModule,
     MatTabsModule,
-    MatBadgeModule
+    MatBadgeModule,
+    MatInputModule,
+    MatExpansionModule,
+    FormsModule
   ],
   providers: [],
   bootstrap: [AppComponent]

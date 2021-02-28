@@ -21,6 +21,7 @@ export class GameFactoryService {
     const destination = this.entityService.create<IDestination>('d', game);
 
     (destination.controller as DestinationController).teleport();
+    game.gameRecord.score = 0;
     return game;
   }
 

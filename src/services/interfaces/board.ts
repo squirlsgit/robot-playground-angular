@@ -1,11 +1,12 @@
 import { Observable } from 'rxjs';
 import { Mode } from './profile';
 
-export interface IBlock  {
+export interface IBlock {
   coordinate: [number, number];
   connections: { [rotation: number]: IBlock }
   resident: {
-    mode: Mode, profile?: {id?: string}};
+    mode: Mode, profile?: { id?: string }
+  };
   disabled: boolean;
   mode: Mode;
 

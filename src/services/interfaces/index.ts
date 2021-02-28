@@ -96,7 +96,7 @@ export class DestinationController extends Controller {
     super(entity);
     this.entity.mode = Mode.Solid;
     this.entity.game.onState('update').subscribe(() => {
-      if (this.entity.movement.position.resident !== this.entity) {
+      if (this.entity.movement && this.entity.movement.position && this.entity.movement.position.resident !== this.entity) {
         this.teleport();
       }
     });
@@ -104,8 +104,11 @@ export class DestinationController extends Controller {
 
   public teleport() {
     const tiles = this.entity.game.board.getTiles(block => !block.resident && !block.disabled && block.mode > Mode.Invisible);
+    
+
     this.entity.movement.move(tiles[getRandomInt(tiles.length - 1)]);
     this.entity.game.gameRecord.score += 1;
+    this.entity.game.view.playAudio('/assets/audio/bowser.mp3');
   }
 
 
@@ -120,7 +123,7 @@ export class RobotController extends Controller {
     this.actions.left = this.rotateLeft.bind(this);
     this.actions.forward = this.forward.bind(this);
     this.entity.game.onState('update').subscribe(() => {
-      if (this.entity.game.gameState > GameState.Blank && (this.entity.movement.position === null || this.entity.movement.position.disabled || this.entity.movement.position.mode == Mode.Invisible) ) {
+      if (this.entity.game.gameState > GameState.Blank && (this.entity.movement.position === null || this.entity.movement.position.disabled || this.entity.movement.position.mode == Mode.Invisible)) {
 
         this.entity.game.gameState = GameState.Over;
       }
@@ -128,14 +131,16 @@ export class RobotController extends Controller {
   }
 
   public rotateRight() {
-    this.entity.movement.rotation = Math.sign(this.entity.movement.rotation) * ((this.entity.movement.rotation + 90) % 360)
+    
+    this.entity.movement.rotation =  ( Math.sign(this.entity.movement.rotation) || 1 ) * ((this.entity.movement.rotation + 90) % 360);
   }
 
   public rotateLeft() {
-    this.entity.movement.rotation = Math.sign(this.entity.movement.rotation) * ((this.entity.movement.rotation - 90) % 360)
+    this.entity.movement.rotation = ( Math.sign(this.entity.movement.rotation) || 1 ) * ((this.entity.movement.rotation - 90) % 360);
   }
 
   public forward() {
+    console.log('destination', this.entity.movement.destination);
     this.entity.movement.move(this.entity.movement.destination);
   }
 
@@ -145,7 +150,7 @@ export class Block extends Entity implements IBlock {
   resident: IEntity = null;
   coordinate: [number, number];
   connections: { [rotation: number]: IBlock; } = {};
-  mode = Mode.Solid;
+  mode = Mode.Board;
 
   public constructor(coordinate?: [number, number]) {
     super();
@@ -171,7 +176,7 @@ export class Board extends Entity implements IBoard {
     this.entityFactory = entityFactory;
     this.game = game;
     this.disabled = false;
-    
+
   }
 
 
@@ -204,7 +209,7 @@ export class Board extends Entity implements IBoard {
     for (let j = 0; j < this.state.length; j++) {
       this.state[j] = Array<any>(length).fill(null, 0, length);
       for (let i = 0; i < this.state[j].length; i++) {
-        this.state[j][i] = new Block([i,j]);
+        this.state[j][i] = new Block([i, j]);
       }
     }
 
@@ -218,17 +223,17 @@ export class Board extends Entity implements IBoard {
       cursor[1] = j;
       cursor[0] = 0;
       const actions = row.split(',');
-      for (let i = 0; i < actions.length; i += 3) {
+      for (let i = 0; i < actions.length; i += 4) {
 
         const skip = parseInt(actions[i]) || 1;
         const disabled = parseInt(actions[i + 1]);
-        const action = actions[i + 2];
-        
-        console.log(cursor, skip, cursor[0] + skip, this.getBlock([cursor[0] + skip, cursor[1]]));
+        const mode = parseInt(actions[i + 2]);
+        const action = actions[i + 3];
+
         cursor[0] += skip;
         //if (skip) cursor[0] += skip;
         //else cursor[0] += 1;
-        this.initBlock(this.getBlock(cursor), disabled as 0 | 1, action);
+        this.initBlock(this.getBlock(cursor), disabled as 0 | 1, mode, action);
 
 
       }
@@ -271,12 +276,15 @@ export class Board extends Entity implements IBoard {
     return null;
   }
 
-  protected initBlock(block: IBlock, disabled: 0 | 1, action: string) {
-    console.log(block, disabled, action);
+  protected initBlock(block: IBlock, disabled: 0 | 1, mode: Mode, action: string) {
+    console.log(block, disabled, mode, action);
     if (disabled) {
 
       block.disabled = true;
 
+    }
+    if (mode > -2) {
+      block.mode = mode;
     }
     if (!action) return;
     else {
@@ -287,7 +295,7 @@ export class Board extends Entity implements IBoard {
 
 export class Game extends Entity implements IGame {
   public static defaultboardlength = 5;
-  public static defaultnotation: string = `//1,,,,0,r`;
+  public static defaultnotation: string = `//1,,,,0,,0,r`;
   public static gamelength: number = 60;
   public static tickperiod: number = 1000;
   public error_message: string;
@@ -301,13 +309,13 @@ export class Game extends Entity implements IGame {
     super();
 
   }
-    view: IView;
+  view: IView;
   public board: IBoard;
-  public gameRecord: IGameRecord = {name: 'Player', playerId: 'We are all one', score: 0};
+  public gameRecord: IGameRecord = { name: 'Player', playerId: 'We are all one', score: 0 };
   protected start() {
-    this.tick = timer(0, 1000).pipe(map(time => time / Game.tickperiod));
+    this.tick = timer(0, Game.tickperiod).pipe(map(time => time));
     this.tick.subscribe(val => {
-      if (this.gameState == GameState.Start) {
+      if (this.gameState === GameState.Start) {
         this.timer = Math.floor(Game.gamelength - val);
         this.state$.next('tick');
         if (this.timer < 0) {
@@ -333,18 +341,26 @@ export class Game extends Entity implements IGame {
         this.start();
         return;
       }
-      this.gameState = val;
-      if (this.gameState = GameState.Pause) {
+      this._gameState = val;
+      if (this.gameState == GameState.Pause) {
         this.state$.next('game_pause');
-      } else if (this.gameState = GameState.Over) {
-        this.view.firestoreService.db.collection('score').add({
-          gameId: '5x5',
-          score: this.gameRecord.score,
-          playerId: this.gameRecord.playerId
+      } else if (this.gameState == GameState.Over) {
+        console.log("Adding score", this.gameRecord);
+        this.view.firestoreService.db.collection('score').doc(this.gameRecord.playerId).get().then(ref => {
+          if (!ref.exists || ref.data().score < this.gameRecord.score) {
 
-        });
+            this.view.firestoreService.db.collection('scores').doc(this.gameRecord.playerId + '-5x5').set({
+              gameId: '5x5',
+              score: this.gameRecord.score,
+              playerId: this.gameRecord.playerId,
+              playerName: this.gameRecord.playerId
+            });
+          }
+
+        }, err => console.error(err))
+        
         this.state$.next('game_over');
-      } else if (this.gameState = GameState.Start) {
+      } else if (this.gameState == GameState.Start) {
         this.state$.next('game_start');
       }
     }
@@ -364,7 +380,10 @@ export class Movement implements IMovement {
   protected _position: IBlock;
   public get position(): IBlock { return this._position; }
   public set position(val: IBlock) {
-    this.history.push([val.coordinate[0], val.coordinate[1], val]);
+    if (val) {
+      this.history.push([val.coordinate[0], val.coordinate[1], val]);
+    }
+    
     this._position = val;
   }
   public constructor(entity: IEntity) {
@@ -373,25 +392,27 @@ export class Movement implements IMovement {
 
   protected rotation_directions = [[0, 1], [1, 0], [0, -1], [-1, 0]];
   public get destination(): IBlock {
+    
     let direction = Math.floor(this.rotation / 90);
 
     if (direction < 0) {
-      direction = 4 - direction;
+      direction = 4 + direction;
     }
+    console.log('direction',this.rotation, direction);
     const vector = this.rotation_directions[direction] || [0, 0];
     vector[0] *= this.speed;
     vector[1] *= this.speed;
-
-    const destination: [number, number] = [this.position.coordinate[0] + vector[0], this.position.coordinate[1] + vector[1]];
+    console.log('vector', vector);
+    const destination: [number, number] = [this.position.coordinate[0] + vector[0], this.position.coordinate[1] - vector[1]];
     return this.entity.game.board.getBlock(destination);
   }
-  
-  public move(block: IBlock) {
 
+  public move(block: IBlock) {
+    console.log('move', block);
     // invalid move
     if (!block) {
       // nullify position
-      this.position.resident = null;
+      if(this.position) this.position.resident = null;
       this.position = null;
     } else {
 
@@ -403,13 +424,14 @@ export class Movement implements IMovement {
 
       }
 
-     
+
       if (this.position && this.position.resident == this.entity) this.position.resident = null;
 
       this.position = block;
       this.position.resident = this.entity;
+      console.log('coordinate', this.position.coordinate);
     }
-    
+
     this.entity.game.state$.next('update');
 
   }
